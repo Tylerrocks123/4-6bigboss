@@ -3,7 +3,8 @@ var context;
 var player;
 var timer;
 var interval = 1000/60;
-
+var squares = [];
+var circles = [];
 var frictionX = 0.9;
 var frictionY = 0.8;
 var gravity = 5;
@@ -12,19 +13,29 @@ canvas = document.getElementById("canvas");
 context = canvas.getContext("2d");
 context.font = "30px Arial";
 
-//player = new GameObject(100,canvas.height/2,100,100,"#eeea1e");
-//npc1 = new GameObject(300,canvas.height/2,100,100,"#1eaeff");
-//npc2 = new GameObject(600,canvas.height/2,100,100,"#df1eaf");
-player1 = new GameObject(0, canvas.height - 15, 150, 30, "#00ff00");
-ball = new GameObject(50,canvas.height/2,50,50,"#00ff00");
+player1 = new GameObject(canvas.width/2, 750, 50, 50, "#fff000");
+for (var i = 0; i < 5; i++)
+{
+    squares[i] = new GameObject(Math.random() * canvas.width, 0, 30, 30, "#00ff00");
+    squares[i].vx = 0;
+    squares[i].vy = Math.random() * 5 + 2;
+    squares[i].force = 1;
+}
+for (var k = 0; k < 5; k++)
+{
+    circles[k] = new GameObject(Math.random() * canvas.width, 0, 30, 30, "#ff0000");
+    circles[k].vx = 0;
+    circles[k].vy = Math.random() * 5 + 2;
+    circles[k].force = 1;
+}
+
 player1.vx = 0;
 player1.vy = 0;
-ball.vx = 0;
-ball.vy = 1;
 player1.ax = 1;
 player1.force = 1.5;
-ball.force = 1;
-Score = 0;
+player1.hitFrames = 0;
+player1.hitColor = "#fff000";
+score = 0;
 
 timer = setInterval(animate, interval);
 
@@ -32,43 +43,120 @@ timer = setInterval(animate, interval);
 
 function animate()
 {
-
-
     doHandleAcceleration();
     doHandleFriction();
-    doHandleGravity();
     player1.move();
     doCheckBottomBounds();
 
-context.clearRect(0,0,canvas.width,canvas.height);
-context.fillStyle = "black";
-context.fillText("Score: " + Score,50,50);
+    context.clearRect(0,0,canvas.width,canvas.height);
+    context.fillStyle = "black";
+    context.fillText("Score: " + score,50,50);
 
-ball.move();
 
-if (ball.y > canvas.height - ball.height/2)
-{
-    ball.y = canvas.height;
-    Score = 0;
-}
-
-    if (ball.collisionCheck(player1))
+    if (player1.hitFrames > 0)
     {
-        Score++;
-        ball.x = Math.random() * canvas.width;
-        ball.y = 0; 
-        ball.vy = 1;
-        doHandleGravity();
+        player1.hitFrames--;
+    }
+    if (player1.hitFrames > 0)
+    {
+        player1.color = player1.hitColor;
+    }
+    else
+    {
+        player1.color = "#fff000";
+    }
+
+    moveSquares();
+    moveCircles();
+
+    for(var j = 0; j < 5; j++)
+    {
+        if (squares[j].collisionCheck(player1))
+        {
+            score++;
+            squares[j].x = Math.random() * canvas.width;
+            squares[j].y = 0; 
+            squares[j].vy = Math.random() * 5 + 2;
+            player1.hitFrames = 30;
+            player1.hitColor = "#00ff00";
+        }
+
+        if (squares[j].y > canvas.height - squares[j].height/2)
+        {
+            squares[j].y = canvas.height;
+            squares[j].x = Math.random() * canvas.width;
+            squares[j].y = 0; 
+            squares[j].vy = Math.random() * 5 + 2;
+        }
+    }
+
+    for(var p = 0; p < 5; p++)
+    {
+        if (circles[p].collisionCheck(player1))
+        {
+        score = 0;
+        circles[p].x = Math.random() * canvas.width;
+        circles[p].y = 0; 
+        circles[p].vy = Math.random() * 5 + 2;
+
+        for (var o = 0; o < circles.length; o++)
+        {
+            circles[o].y = canvas.height;
+            squares[o].y = canvas.height;
+        }
+
+        player1.hitFrames = 30;
+        player1.hitColor = "#ff0000";
+        }
+
+        if (circles[p].y > canvas.height - circles[p].height/2)
+        {
+        circles[p].y = canvas.height;
+        circles[p].x = Math.random() * canvas.width;
+        circles[p].y = 0; 
+        circles[p].vy = Math.random() * 5 + 2;
+        }
+    }
+
+    if(player1.top() < 0)
+    {
+        player1.y = player1.height / 2;
+    }
+    if(player1.bottom() > canvas.height)
+    {
+        player1.y = canvas.height - player1.height / 2;
+    }
+    if (player1.x < player1.width / 2)
+    {
+        player1.x = player1.width / 2;
+        player1.vx = 0;
     }
 
 
-        function doHandleAcceleration()
+    if (player1.x > canvas.width - player1.width / 2)
+    {
+        player1.x = canvas.width - player1.width / 2;
+        player1.vx = 0;
+    }
+
+    player1.drawRect();
+    for(var i = 0; i < 5; i++)    
+    {
+        squares[i].drawRect();
+    }
+    for(var k = 0; k < 5; k++)    
+    {
+        circles[k].drawCircle();
+    }
+}
+
+function doHandleAcceleration()
 {
         if (d)
         {
             player1.vx += player1.ax * player1.force;
         }
-            if (a)
+        if (a)
         {
             player1.vx += player1.ax * -player1.force;
         }
@@ -77,12 +165,6 @@ if (ball.y > canvas.height - ball.height/2)
 function doHandleFriction()
 {
     player1.vx *= frictionX;
-}
-
-function doHandleGravity()
-{
-    //player1.vy += gravity;
-    ball.vy += Math.random() * 0.5;
 }
 
 function doUpdatePosition()
@@ -100,40 +182,24 @@ function doCheckBottomBounds()
     }
 }
 
-function setParticles()
+function moveSquares()
 {
-	for(var i = 0; i < 4; i++)
+	for(var i = 0; i < 5; i++)
 	{
-		particles[i] = new GameObject({x:0, y:0, width:30, height:30, color:"#ff0000"});
-		particles[i].vx = rand(-25, 25);
+        squares[i].vx = 0;
+        squares[i].force = 1;
+        squares[i].move();
 	}
 	
 }
 
-    if(player1.top() < 0)
-    {
-        player1.y = player1.height / 2;
-    }
-    if(player1.bottom() > canvas.height)
-    {
-        player1.y = canvas.height - player1.height / 2;
-    }
-    if (player1.x < player1.width / 2)
-    {
-        player1.x = player1.width / 2;
-        player1.vx = 0;
-    }
-
-
-if (player1.x > canvas.width - player1.width / 2)
+function moveCircles()
 {
-    player1.x = canvas.width - player1.width / 2;
-    player1.vx = 0;
-}
-    //player.drawCircle();
-    //npc1.drawCircle();
-    //npc2.drawCircle();
-    //npc3.drawRect();
-    player1.drawRect();
-    ball.drawCircle();
+	for(var i = 0; i < 5; i++)
+	{
+        circles[i].vx = 0;
+        circles[i].force = 1;
+        circles[i].move();
+	}
+	
 }
